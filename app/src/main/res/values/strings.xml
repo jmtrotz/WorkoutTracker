@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Do You Even Lift Bro?</string>
+    <string name="workout_date">Workout Date</string>
+    <string name="date_picker_title">Workout Date:</string>
+    <string name="workout_title_hint">Enter a name for your workout</string>
+    <string name="workout_details_hint">Enter a description of your workout</string>
+    <string name="new_workout_button_label">New Workout</string>
+    <string name="workout_title_label">Workout Name</string>
+    <string name="effort_checkbox_label">I gave it 110%</string>
+    <string name="workout_details_label">Workout Details</string>
+    <string name="save_button_label">Save</string>
+    <string name="date_button_label">Choose Workout Date</string>
+    <string name="delete_button_label">Delete</string>
+    <string name="camera_button_label">Take Progress Photo</string>
+</resources>
