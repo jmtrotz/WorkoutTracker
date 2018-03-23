@@ -35,12 +35,12 @@ import java.util.UUID;
 
 public class WorkoutDetailsActivity extends AppCompatActivity
 {
+    private Workout mWorkout;
     private EditText mTitleView;
     private EditText mDescriptionView;
+    private CheckBox mEffortCheckBox;
     private ImageButton mDateButton;
     private ImageButton mCameraButton;
-    private CheckBox mEffortCheckBox;
-    private Workout mWorkout;
     private ImageView mPhotoView;
     private FloatingActionButton mSaveButton;
     private File mPhotoFile;
@@ -71,24 +71,19 @@ public class WorkoutDetailsActivity extends AppCompatActivity
         }
     }
 
-    private void fishOutIDs()
-    {
-        mTitleView = findViewById(R.id.workout_title);
-        mDescriptionView = findViewById(R.id.workout_description);
-        mDateButton = findViewById(R.id.date_chooser_button);
-        mEffortCheckBox = findViewById(R.id.effort_check_box);
-        mCameraButton = findViewById(R.id.camera_button);
-        mPhotoView = findViewById(R.id.photo_view);
-        mSaveButton = findViewById(R.id.save_button);
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_workout_details);
+        mTitleView = findViewById(R.id.workout_title);
+        mDescriptionView = findViewById(R.id.workout_description);
+        mEffortCheckBox = findViewById(R.id.effort_check_box);
+        mDateButton = findViewById(R.id.date_chooser_button);
+        mCameraButton = findViewById(R.id.camera_button);
+        mPhotoView = findViewById(R.id.photo_view);
+        mSaveButton = findViewById(R.id.save_button);
         UUID uuid = (UUID) getIntent().getSerializableExtra(EXTRA_UUID);
-        fishOutIDs();
 
         if (uuid != null)
         {
@@ -103,24 +98,6 @@ public class WorkoutDetailsActivity extends AppCompatActivity
             PackageManager packageManager = getPackageManager();
             boolean canTakePhoto = mPhotoFile != null && captureImage.resolveActivity(packageManager) != null;
             mCameraButton.setEnabled(canTakePhoto);
-
-            mCameraButton.setOnClickListener(new View.OnClickListener()
-            {
-                @Override
-                public void onClick(View v)
-                {
-                    Uri uri = FileProvider.getUriForFile(WorkoutDetailsActivity.this, CAMERA_AUTHORITY, mPhotoFile);
-                    captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-                    List<ResolveInfo> cameraActivities = getPackageManager().queryIntentActivities(captureImage,
-                            PackageManager.MATCH_DEFAULT_ONLY);
-
-                    for (ResolveInfo activity: cameraActivities)
-                    {
-                        grantUriPermission(activity.activityInfo.packageName, uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        startActivityForResult(captureImage, REQUEST_PHOTO);
-                    }
-                }
-            });
 
             mTitleView.addTextChangedListener(new TextWatcher()
             {
@@ -164,6 +141,15 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                 }
             });
 
+            mEffortCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
+            {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
+                {
+                    mWorkout.setEffort(isChecked);
+                }
+            });
+
             mDateButton.setOnClickListener(new View.OnClickListener()
             {
                 @Override
@@ -184,7 +170,6 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                                     int month = datePicker.getMonth();
                                     int day = datePicker.getDayOfMonth();
                                     Date date = new GregorianCalendar(year, month, day).getTime();
-
                                     mWorkout.setDate(date);
                                 }
                             })
@@ -193,12 +178,21 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                 }
             });
 
-            mEffortCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
+            mCameraButton.setOnClickListener(new View.OnClickListener()
             {
                 @Override
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
+                public void onClick(View v)
                 {
-                    mWorkout.setEffort(isChecked);
+                    Uri uri = FileProvider.getUriForFile(WorkoutDetailsActivity.this, CAMERA_AUTHORITY, mPhotoFile);
+                    captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                    List<ResolveInfo> cameraActivities = getPackageManager().queryIntentActivities(captureImage,
+                            PackageManager.MATCH_DEFAULT_ONLY);
+
+                    for (ResolveInfo activity: cameraActivities)
+                    {
+                        grantUriPermission(activity.activityInfo.packageName, uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        startActivityForResult(captureImage, REQUEST_PHOTO);
+                    }
                 }
             });
 

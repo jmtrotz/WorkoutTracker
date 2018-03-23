@@ -43,8 +43,8 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mWorkoutRecyclerView = findViewById(R.id.workout_recycler_view);
-        mWorkoutRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mAddButton = findViewById(R.id.add_button);
+        mWorkoutRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         mAddButton.setOnClickListener(new View.OnClickListener()
         {
