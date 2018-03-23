@@ -10,6 +10,7 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -41,6 +42,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
     private CheckBox mEffortCheckBox;
     private Workout mWorkout;
     private ImageView mPhotoView;
+    private FloatingActionButton mSaveButton;
     private File mPhotoFile;
     private static final int REQUEST_PHOTO = 2;
     private static final String DEFAULT_TITLE = "Default workout title";
@@ -77,6 +79,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
         mEffortCheckBox = findViewById(R.id.effort_check_box);
         mCameraButton = findViewById(R.id.camera_button);
         mPhotoView = findViewById(R.id.photo_view);
+        mSaveButton = findViewById(R.id.save_button);
     }
 
     @Override
@@ -198,6 +201,14 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                     mWorkout.setEffort(isChecked);
                 }
             });
+
+            mSaveButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    WorkoutHelper.get(WorkoutDetailsActivity.this).updateWorkout(mWorkout);
+                    finish();
+                }
+            });
         }
 
         else
@@ -226,13 +237,6 @@ public class WorkoutDetailsActivity extends AppCompatActivity
             case R.id.delete_button:
             {
                 WorkoutHelper.get(WorkoutDetailsActivity.this).deleteWorkout(mWorkout);
-                finish();
-                return true;
-            }
-
-            case R.id.save_button:
-            {
-                WorkoutHelper.get(WorkoutDetailsActivity.this).updateWorkout(mWorkout);
                 finish();
                 return true;
             }
