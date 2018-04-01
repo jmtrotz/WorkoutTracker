@@ -7,14 +7,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -79,7 +77,7 @@ public class MainActivity extends AppCompatActivity
                 // Creates a new workout object and starts the workout details activity
                 Workout workout = new Workout();
                 WorkoutHelper.get(MainActivity.this).addWorkout(workout);
-                Intent intent = WorkoutDetailsActivity.newIntent(MainActivity.this, workout.getUUID());
+                Intent intent = DetailsActivity.newIntent(MainActivity.this, workout.getUUID());
                 startActivity(intent);
             }
         });
@@ -142,7 +140,7 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void onClick(View listItem)
         {
-            Intent intent = WorkoutDetailsActivity.newIntent(MainActivity.this, mWorkout.getUUID());
+            Intent intent = DetailsActivity.newIntent(MainActivity.this, mWorkout.getUUID());
             startActivity(intent);
         }
     }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Do You Even Lift Bro?</string>
+    <string name="app_name">Workout Tracker</string>
     <string name="workout_date">Workout Date</string>
     <string name="workout_title_hint">Enter a name for your workout</string>
     <string name="workout_details_hint">Enter a description of your workout</string>

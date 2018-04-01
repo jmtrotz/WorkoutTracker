@@ -1,6 +1,7 @@
 package com.jeff.workouttracker;
 
 // Import packages
+import android.Manifest;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -12,6 +13,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -47,7 +50,7 @@ import java.util.UUID;
  * Class: CS 305
  * @version 1.0
  */
-public class WorkoutDetailsActivity extends AppCompatActivity
+public class DetailsActivity extends AppCompatActivity
 {
     // Declare fields used in this class
     private Workout mWorkout;
@@ -60,14 +63,17 @@ public class WorkoutDetailsActivity extends AppCompatActivity
     private FloatingActionButton mSaveButton;
     private File mPhotoFile;
     private static final int REQUEST_PHOTO = 2;
+    private static final int PERMISSIONS_REQUEST_CAMERA = 0;
+    private static final String PERMISSIONS_DIALOG_TITLE = "Camera Permissions";
+    private static final String PERMISSIONS_DIALOG_TEXT = "I promise that this app does not use your camera to spy on you.";
+    private static final String CAMERA_AUTHORITY = "com.jeff.workouttracker.fileprovider";
+    private static final String DATE_DIALOG_TITLE = "Workout Date:";
+    private static final String TIME_DIALOG_TITLE = "Workout Time:";
     private static final String DELETE_TOAST = "Deleting workout...";
     private static final String SAVE_TOAST = "Saving workout...";
     private static final String DEFAULT_TITLE = "Default workout title";
-    private static final String DATE_DIALOG_TITLE = "Workout Date:";
-    private static final String TIME_DIALOG_TITLE = "Workout Time:";
     private static final String DEFAULT_DESCRIPTION = "Default workout description";
     private static final String EXTRA_UUID = "details_uuid";
-    private static final String CAMERA_AUTHORITY = "com.jeff.workouttracker.fileprovider";
     private static final String KEY_TITLE = "title_data";
     private static final String KEY_DESCRIPTION = "description_data";
     private static final String KEY_CHECKBOX = "checkbox_data";
@@ -82,7 +88,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
     public static Intent newIntent(Context context, UUID uuid)
     {
         // Create a new intent object and add the UUID as an exta
-        Intent intent = new Intent(context, WorkoutDetailsActivity.class);
+        Intent intent = new Intent(context, DetailsActivity.class);
         intent.putExtra(EXTRA_UUID, uuid);
 
         // Return the new intent object
@@ -104,7 +110,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
         else
         {
             Bitmap bitmap = PictureFactory.getScaledBitmap(mPhotoFile.getPath(),
-                    WorkoutDetailsActivity.this);
+                    DetailsActivity.this);
             mPhotoView.setImageBitmap(bitmap);
         }
     }
@@ -141,7 +147,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
         // Get the information for the workout the user chose to view
         if (uuid != null)
         {
-            mWorkout = WorkoutHelper.get(WorkoutDetailsActivity.this).getWorkout(uuid);
+            mWorkout = WorkoutHelper.get(DetailsActivity.this).getWorkout(uuid);
 
             /*
              * If the hour hasn't been set, then the user is creating a new workout, so we don't
@@ -155,14 +161,16 @@ public class WorkoutDetailsActivity extends AppCompatActivity
             mTitleView.setText(mWorkout.getTitle());
             mDescriptionView.setText(mWorkout.getDescription());
             mEffortCheckBox.setChecked(mWorkout.getEffort());
-            mPhotoFile = WorkoutHelper.get(WorkoutDetailsActivity.this).getPhotoFile(mWorkout);
-            updatePhotoView();
+            mPhotoFile = WorkoutHelper.get(DetailsActivity.this).getPhotoFile(mWorkout);
 
             // Enable the camera button
             final Intent captureImage = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             PackageManager packageManager = getPackageManager();
             final boolean canTakePhoto = mPhotoFile != null && captureImage.resolveActivity(packageManager) != null;
             mCameraButton.setEnabled(canTakePhoto);
+
+            // Update the image view
+            updatePhotoView();
 
             // Listener for the title text field
             mTitleView.addTextChangedListener(new TextWatcher()
@@ -216,7 +224,6 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
                 {
-                    // Set the effort if the user selects the checkbox
                     mWorkout.setEffort(isChecked);
                 }
             });
@@ -227,51 +234,28 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                 @Override
                 public void onClick(View datePickerButton)
                 {
-                    // Create a new calendar instance and get values from it
-                    Calendar calendar = Calendar.getInstance();
-                    int mYear = calendar.get(Calendar.YEAR);
-                    int mMonth = calendar.get(Calendar.MONTH);
-                    int mDay = calendar.get(Calendar.DAY_OF_MONTH);
-                    int mHour = calendar.get(Calendar.HOUR_OF_DAY);
-                    int mMinute = calendar.get(Calendar.MINUTE);
-
-                    // Show the date picker dialog and pass in the calendar values
-                    showDatePicker(mYear, mMonth, mDay, mHour, mMinute);
+                    showDatePicker();
                 }
             });
 
-            // Listener for the camera button. Launches the camera
+            // Listener for the camera button. Checks for camera permission/launches the camera
             mCameraButton.setOnClickListener(new View.OnClickListener()
             {
                 @Override
                 public void onClick(View cameraButton)
                 {
-                    // Generate file URI
-                    Uri uri = FileProvider.getUriForFile(WorkoutDetailsActivity.this,
-                            CAMERA_AUTHORITY, mPhotoFile);
-                    captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-                    List<ResolveInfo> cameraActivities = getPackageManager()
-                            .queryIntentActivities(captureImage, PackageManager.MATCH_DEFAULT_ONLY);
-
-                    for (ResolveInfo activity: cameraActivities)
-                    {
-                        // Grant camera permissions and launch the camera
-                        grantUriPermission(activity.activityInfo.packageName, uri,
-                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                        startActivityForResult(captureImage, REQUEST_PHOTO);
-                    }
+                    launchCamera(captureImage);
                 }
             });
 
-            // Listener for the save button
+            // Listener for the save button. Updates the database then closes the activity
             mSaveButton.setOnClickListener(new View.OnClickListener()
             {
                 @Override
                 public void onClick(View saveButton)
                 {
-                    // Updates the workout in the database then closes the activity
-                    WorkoutHelper.get(WorkoutDetailsActivity.this).updateWorkout(mWorkout);
-                    Toast toast = Toast.makeText(WorkoutDetailsActivity.this,
+                    WorkoutHelper.get(DetailsActivity.this).updateWorkout(mWorkout);
+                    Toast toast = Toast.makeText(DetailsActivity.this,
                             SAVE_TOAST, Toast.LENGTH_SHORT);
                     toast.show();
                     finish();
@@ -331,8 +315,8 @@ public class WorkoutDetailsActivity extends AppCompatActivity
             // Deletes the workout and closes the activity
             case R.id.delete_button:
             {
-                WorkoutHelper.get(WorkoutDetailsActivity.this).deleteWorkout(mWorkout);
-                Toast toast = Toast.makeText(WorkoutDetailsActivity.this,
+                WorkoutHelper.get(DetailsActivity.this).deleteWorkout(mWorkout);
+                Toast toast = Toast.makeText(DetailsActivity.this,
                         DELETE_TOAST, Toast.LENGTH_SHORT);
                 toast.show();
                 finish();
@@ -347,23 +331,26 @@ public class WorkoutDetailsActivity extends AppCompatActivity
     }
 
     /**
-     * Method to show the date picker dialog window
-     * @param year Year the workout took place
-     * @param month Month the workout took place
-     * @param day Day the workout took place
-     * @param hour Hour the workout took place
-     * @param minute Minute the workout took place
+     * Method to show the date picker dialog window and calls
+     * the method to show the time picker dialog window
      */
-    private void showDatePicker(int year, int month, int day, final int hour, final int minute)
+    private void showDatePicker()
     {
+        // Create a new calendar instance and get values from it
+        final Calendar calendar = Calendar.getInstance();
+        int mYear = calendar.get(Calendar.YEAR);
+        int mMonth = calendar.get(Calendar.MONTH);
+        int mDay = calendar.get(Calendar.DAY_OF_MONTH);
+
+
         // Create the view for the date picker dialog window and set parameters
-        View datePickerView = LayoutInflater.from(WorkoutDetailsActivity.this)
+        View datePickerView = LayoutInflater.from(DetailsActivity.this)
                 .inflate(R.layout.dialog_date_picker, null);
         final DatePicker datePicker = datePickerView.findViewById(R.id.date_picker);
-        datePicker.init(year, month, day, null);
+        datePicker.init(mYear, mMonth, mDay, null);
 
         // Show the dialog window
-        Dialog datePickerDialog = new AlertDialog.Builder(WorkoutDetailsActivity.this)
+        Dialog datePickerDialog = new AlertDialog.Builder(DetailsActivity.this)
                 .setView(datePickerView).setTitle(DATE_DIALOG_TITLE)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener()
                 {
@@ -379,8 +366,13 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                         Date date = new GregorianCalendar(year, month, day).getTime();
                         mWorkout.setDate(date);
 
-                        // Launch the time picker
-                        showTimePicker(hour, minute);
+                        /*
+                         * Launch the time picker and pass in the hour/minute values from the
+                         * existing calendar instance instead of creating another one in that method
+                         */
+                        int mHour = calendar.get(Calendar.HOUR_OF_DAY);
+                        int mMinute = calendar.get(Calendar.MINUTE);
+                        showTimePicker(mHour, mMinute);
                     }
                 }).create();
         datePickerDialog.show();
@@ -395,7 +387,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
     private void showTimePicker(int hour, int minute)
     {
         // Create the view for the time picker dialog window
-        View timePickerView = LayoutInflater.from(WorkoutDetailsActivity.this)
+        View timePickerView = LayoutInflater.from(DetailsActivity.this)
                 .inflate(R.layout.dialog_time_picker, null);
         final TimePicker timePicker = timePickerView.findViewById(R.id.time_picker);
 
@@ -407,7 +399,7 @@ public class WorkoutDetailsActivity extends AppCompatActivity
         }
 
         // Show the dialog window
-        Dialog timePickerDialog = new AlertDialog.Builder(WorkoutDetailsActivity.this)
+        Dialog timePickerDialog = new AlertDialog.Builder(DetailsActivity.this)
                 .setView(timePickerView).setTitle(TIME_DIALOG_TITLE)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener()
                 {
@@ -431,5 +423,55 @@ public class WorkoutDetailsActivity extends AppCompatActivity
                     }
                 }).create();
         timePickerDialog.show();
+    }
+
+    /**
+     * Starting in Android 6.0 Marshmallow all apps are required to request permission
+     * before using things like the camera, so this method checks for permission. If
+     * Permission has already been granted, it launches the camera
+     */
+    private void launchCamera(Intent captureImage)
+    {
+       // Check for permission
+        if (ContextCompat.checkSelfPermission(DetailsActivity.this,
+                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(DetailsActivity.this,
+                    new String[] {Manifest.permission.CAMERA}, PERMISSIONS_REQUEST_CAMERA);
+
+            //Show a dialog with a camera disclaimer
+            Dialog permissionsDialog = new AlertDialog.Builder(DetailsActivity.this)
+                    .setTitle(PERMISSIONS_DIALOG_TITLE)
+                    .setMessage(PERMISSIONS_DIALOG_TEXT)
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which)
+                        {
+                            dialog.dismiss();
+                        }
+                    })
+                    .create();
+            permissionsDialog.show();
+        }
+
+        // If permission has already been granted, launch the camera
+        else
+        {
+            // Generate file URI
+            Uri uri = FileProvider.getUriForFile(DetailsActivity.this,
+                    CAMERA_AUTHORITY, mPhotoFile);
+            captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+            List<ResolveInfo> cameraActivities = getPackageManager()
+                    .queryIntentActivities(captureImage, PackageManager.MATCH_DEFAULT_ONLY);
+
+            for (ResolveInfo activity : cameraActivities)
+            {
+                // Grant permissions and launch the camera
+                grantUriPermission(activity.activityInfo.packageName, uri,
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                startActivityForResult(captureImage, REQUEST_PHOTO);
+            }
+        }
     }
 }
