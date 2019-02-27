@@ -15,7 +15,7 @@ public class WorkoutDatabaseSchema
      */
     public static final class WorkoutTable
     {
-        public static final String NAME = "workouts";
+        public static final String NAME = "workout_title";
 
         /**
          * Nested class to store the column names for the database table
